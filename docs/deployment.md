@@ -60,11 +60,11 @@ directory.
 Prepare the server as the intended runner account:
 
 ```bash
-sudo mkdir -p /opt/lifeos-ai
-sudo chown "$USER":"$(id -gn)" /opt/lifeos-ai
-# Copy .env.example to /opt/lifeos-ai/.env, configure real service credentials,
+sudo mkdir -p /opt/lifeos-ai/lifeos-ai/lifeos-ai
+sudo chown "$USER":"$(id -gn)" /opt/lifeos-ai/lifeos-ai/lifeos-ai
+# Copy .env.example to /opt/lifeos-ai/lifeos-ai/lifeos-ai/.env, configure real service credentials,
 # then restrict its permissions:
-chmod 600 /opt/lifeos-ai/.env
+chmod 600 /opt/lifeos-ai/lifeos-ai/lifeos-ai/.env
 ```
 
 Provision database roles/schema once using the instructions above. In this
@@ -74,12 +74,12 @@ URL (`postgresql+psycopg://...`). Keep the runtime-role URL in the server's `.en
 The migration secret is passed only to the one-off migration containers, and is
 not added to the running services or saved in the deployment directory.
 
-The workflow syncs source to `/opt/lifeos-ai`, preserving the server's `.env`
+The workflow syncs source to `/opt/lifeos-ai/lifeos-ai/lifeos-ai`, preserving the server's `.env`
 files and local artifacts, builds the image on that server, applies Alembic and
 checkpoint migrations, and starts API, worker and bot. Deployment fails if the
 services do not become healthy within 180 seconds. The named artifact volume
 survives deployments. Source files managed by Git are replaced during sync;
-keep unrelated server files outside `/opt/lifeos-ai`.
+keep unrelated server files outside `/opt/lifeos-ai/lifeos-ai/lifeos-ai`.
 
 Migrations run while the previous application containers may still be serving,
 so future schema changes must remain compatible with that version. A failed

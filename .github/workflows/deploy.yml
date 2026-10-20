@@ -27,8 +27,8 @@ jobs:
       run:
         shell: bash
     env:
-      DEPLOY_DIR: /opt/lifeos-ai
-      LIFEOS_ENV_FILE: /opt/lifeos-ai/.env
+      DEPLOY_DIR: /opt/lifeos-ai/lifeos-ai/lifeos-ai
+      LIFEOS_ENV_FILE: /opt/lifeos-ai/lifeos-ai/lifeos-ai/.env
 
     steps:
       - name: Checkout
@@ -41,11 +41,11 @@ jobs:
           MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
         run: |
           test -d "$DEPLOY_DIR" && test -w "$DEPLOY_DIR" || {
-            echo 'Create /opt/lifeos-ai and grant the runner user write access.' >&2
+            echo "Create $DEPLOY_DIR and grant the runner user write access." >&2
             exit 1
           }
           test -r "$LIFEOS_ENV_FILE" || {
-            echo 'Configure /opt/lifeos-ai/.env on the deployment server first.' >&2
+            echo "Configure $LIFEOS_ENV_FILE on the deployment server first." >&2
             exit 1
           }
           test -n "$MIGRATION_DATABASE_URL" || {
@@ -65,15 +65,15 @@ jobs:
             ./ "$DEPLOY_DIR/"
 
       - name: Validate Compose
-        working-directory: /opt/lifeos-ai
+        working-directory: ${{ env.DEPLOY_DIR }}
         run: docker compose -f infrastructure/compose.yaml config --quiet
 
       - name: Build application image
-        working-directory: /opt/lifeos-ai
+        working-directory: ${{ env.DEPLOY_DIR }}
         run: docker compose -f infrastructure/compose.yaml build --pull api
 
       - name: Apply database and checkpoint migrations
-        working-directory: /opt/lifeos-ai
+        working-directory: ${{ env.DEPLOY_DIR }}
         env:
           MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
         run: |
@@ -83,7 +83,7 @@ jobs:
             -e MIGRATION_DATABASE_URL api python -m lifeos.persistence.setup_checkpoints
 
       - name: Deploy and wait for healthy services
-        working-directory: /opt/lifeos-ai
+        working-directory: ${{ env.DEPLOY_DIR }}
         run: |
           docker compose -f infrastructure/compose.yaml up -d --no-build \
             --remove-orphans --wait --wait-timeout 180
@@ -91,7 +91,7 @@ jobs:
 
       - name: Show service status on failure
         if: failure()
-        working-directory: /opt/lifeos-ai
+        working-directory: ${{ env.DEPLOY_DIR }}
         run: |
           if test -f infrastructure/compose.yaml && test -r "$LIFEOS_ENV_FILE"; then
             docker compose -f infrastructure/compose.yaml ps --all
