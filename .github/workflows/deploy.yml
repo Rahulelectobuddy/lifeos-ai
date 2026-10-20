@@ -34,6 +34,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          # This runner keeps its server .env in the checkout directory.
+          # The default git clean -ffdx removes ignored files, including .env.
+          clean: false
           persist-credentials: false
 
       - name: Check server configuration

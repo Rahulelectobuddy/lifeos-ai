@@ -81,6 +81,16 @@ services do not become healthy within 180 seconds. The named artifact volume
 survives deployments. Source files managed by Git are replaced during sync;
 keep unrelated server files outside `/opt/lifeos-ai/lifeos-ai/lifeos-ai`.
 
+The deployment checkout uses `clean: false` because this server keeps its `.env`
+inside the runner checkout. The checkout action's default `git clean -ffdx`
+deletes ignored files, including `.env`. The subsequent rsync also excludes
+`.env` and `.env.*`. This does not recover an already deleted file: restore it
+from your secret store or backup before rerunning. For longer-term isolation,
+keep runtime secrets outside the runner workspace and point `LIFEOS_ENV_FILE`
+to that absolute path; workspace replacement or manual cleanup can still
+remove files stored inside it. The test workflow runs on a disposable
+GitHub-hosted runner and keeps its normal clean checkout.
+
 Migrations run while the previous application containers may still be serving,
 so future schema changes must remain compatible with that version. A failed
 deployment is reported without automatic database rollback. The server must
