@@ -46,6 +46,49 @@ resend a command. Already enqueued runs/approvals remain durable.
 
 ## Updates
 
+### GitHub Actions deployment to a separate server
+
+`.github/workflows/deploy.yml` runs on pushes to `main` or manual dispatch from
+`main`. It reuses the test workflow before deploying. Install a GitHub Actions
+self-hosted runner **on the LifeOS server** with labels `self-hosted`, `linux`,
+and `lifeos-ai`. Give only that server the `lifeos-ai` label so the existing
+homelab/homestack runners cannot pick up this deployment. Either x64 or ARM64
+Linux can be used. Install Docker Engine, Docker Compose v2.24.4+ and rsync;
+the runner account must have Docker access and write access to the deployment
+directory.
+
+Prepare the server as the intended runner account:
+
+```bash
+sudo mkdir -p /opt/lifeos-ai
+sudo chown "$USER":"$(id -gn)" /opt/lifeos-ai
+# Copy .env.example to /opt/lifeos-ai/.env, configure real service credentials,
+# then restrict its permissions:
+chmod 600 /opt/lifeos-ai/.env
+```
+
+Provision database roles/schema once using the instructions above. In this
+repository's GitHub settings, create an environment named `lifeos-production`
+and add its secret `MIGRATION_DATABASE_URL` using the migration-role SQLAlchemy
+URL (`postgresql+psycopg://...`). Keep the runtime-role URL in the server's `.env`.
+The migration secret is passed only to the one-off migration containers, and is
+not added to the running services or saved in the deployment directory.
+
+The workflow syncs source to `/opt/lifeos-ai`, preserving the server's `.env`
+files and local artifacts, builds the image on that server, applies Alembic and
+checkpoint migrations, and starts API, worker and bot. Deployment fails if the
+services do not become healthy within 180 seconds. The named artifact volume
+survives deployments. Source files managed by Git are replaced during sync;
+keep unrelated server files outside `/opt/lifeos-ai`.
+
+Migrations run while the previous application containers may still be serving,
+so future schema changes must remain compatible with that version. A failed
+deployment is reported without automatic database rollback. The server must
+reach your existing PostgreSQL, Zulip and DGX endpoints; configure those
+addresses for this server's network in its `.env`.
+
+### Manual updates
+
 ```bash
 git pull
 uv sync --frozen --extra dev

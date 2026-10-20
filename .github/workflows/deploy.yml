@@ -1,0 +1,98 @@
+name: Deploy LifeOS AI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lifeos-ai-production
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yaml
+
+  deploy:
+    name: Deploy to LifeOS server
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, linux, lifeos-ai]
+    environment: lifeos-production
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      DEPLOY_DIR: /opt/lifeos-ai
+      LIFEOS_ENV_FILE: /opt/lifeos-ai/.env
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check server configuration
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+        run: |
+          test -d "$DEPLOY_DIR" && test -w "$DEPLOY_DIR" || {
+            echo 'Create /opt/lifeos-ai and grant the runner user write access.' >&2
+            exit 1
+          }
+          test -r "$LIFEOS_ENV_FILE" || {
+            echo 'Configure /opt/lifeos-ai/.env on the deployment server first.' >&2
+            exit 1
+          }
+          test -n "$MIGRATION_DATABASE_URL" || {
+            echo 'Set MIGRATION_DATABASE_URL in the lifeos-production environment secrets.' >&2
+            exit 1
+          }
+          command -v rsync
+          docker info > /dev/null
+          docker compose version
+
+      - name: Sync application source
+        run: |
+          rsync -a --delete \
+            --exclude='.git' --exclude='.env' --exclude='.env.*' \
+            --exclude='.venv' --exclude='.python' --exclude='__pycache__' \
+            --exclude='.pytest_cache' --exclude='.ruff_cache' --exclude='artifacts' \
+            ./ "$DEPLOY_DIR/"
+
+      - name: Validate Compose
+        working-directory: /opt/lifeos-ai
+        run: docker compose -f infrastructure/compose.yaml config --quiet
+
+      - name: Build application image
+        working-directory: /opt/lifeos-ai
+        run: docker compose -f infrastructure/compose.yaml build --pull api
+
+      - name: Apply database and checkpoint migrations
+        working-directory: /opt/lifeos-ai
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+        run: |
+          docker compose -f infrastructure/compose.yaml run --rm --no-deps \
+            -e MIGRATION_DATABASE_URL api alembic upgrade head
+          docker compose -f infrastructure/compose.yaml run --rm --no-deps \
+            -e MIGRATION_DATABASE_URL api python -m lifeos.persistence.setup_checkpoints
+
+      - name: Deploy and wait for healthy services
+        working-directory: /opt/lifeos-ai
+        run: |
+          docker compose -f infrastructure/compose.yaml up -d --no-build \
+            --remove-orphans --wait --wait-timeout 180
+          docker compose -f infrastructure/compose.yaml ps
+
+      - name: Show service status on failure
+        if: failure()
+        working-directory: /opt/lifeos-ai
+        run: |
+          if test -f infrastructure/compose.yaml && test -r "$LIFEOS_ENV_FILE"; then
+            docker compose -f infrastructure/compose.yaml ps --all
+          fi
