@@ -1,0 +1,11 @@
+/help
+/plan Plan my next week. I have 90 minutes every weekday for personal projects.
+/plan Plan today and propose a task to research a new irrigation sensor.
+/tasks
+/projects
+/short Explain why habits beat motivation, using a relatable Hindi story.
+/status <RUN_UUID>
+/approve <APPROVAL_UUID>
+/reject <APPROVAL_UUID>
+/short-status <RUN_UUID>
+/short revise <RUN_UUID> 2 Make the visual more cinematic while retaining the timing.

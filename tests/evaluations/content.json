@@ -1,0 +1,59 @@
+[
+  {
+    "id": "hindi",
+    "request": "Create a Hindi Short about habits.",
+    "expected": "Hindi transcript and English production instructions.",
+    "checks": [
+      "hindi",
+      "english_instructions"
+    ]
+  },
+  {
+    "id": "duration",
+    "request": "Create a 55 second Short.",
+    "expected": "Scenes sum to the total; total is 50-60 seconds.",
+    "checks": [
+      "timing"
+    ]
+  },
+  {
+    "id": "missing_tts",
+    "request": "Generate with no TTS provider configured.",
+    "expected": "Manifest-only, no fabricated audio/video.",
+    "checks": [
+      "truthful_missing_provider"
+    ]
+  },
+  {
+    "id": "image_failure",
+    "request": "Configured image provider returns 503.",
+    "expected": "Stage fails; no fake media success.",
+    "checks": [
+      "provider_failure"
+    ]
+  },
+  {
+    "id": "revision",
+    "request": "Revise only scene 2.",
+    "expected": "Other scenes and all timings preserved; new approval.",
+    "checks": [
+      "scene_isolation"
+    ]
+  },
+  {
+    "id": "render_failure",
+    "request": "FFmpeg fails.",
+    "expected": "Failure is persisted and no final MP4 exported.",
+    "checks": [
+      "failure_tracking"
+    ]
+  },
+  {
+    "id": "review",
+    "request": "Reject the final review.",
+    "expected": "No final export or YouTube publishing.",
+    "checks": [
+      "review_gate"
+    ]
+  }
+]

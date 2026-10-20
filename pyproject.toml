@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lifeos-ai"
+version = "0.1.0"
+description = "Durable personal planning and Hindi Shorts workflows through Zulip"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<1", "uvicorn[standard]>=0.30,<1",
+  "pydantic>=2.9,<3", "pydantic-settings>=2.6,<3",
+  "sqlalchemy[asyncio]>=2.0.36,<3", "alembic>=1.14,<2",
+  "psycopg[binary,pool]>=3.2,<4", "httpx>=0.28,<1",
+  "langchain>=1.0,<2", "langchain-openai>=1.0,<2",
+  "langgraph>=1.0,<2", "langgraph-checkpoint-postgres>=3.0,<4",
+  "opentelemetry-api>=1.28,<2", "opentelemetry-sdk>=1.28,<2",
+  "opentelemetry-exporter-otlp-proto-http>=1.28,<2",
+  "pillow>=11,<13", "boto3>=1.35,<2",
+]
+[project.optional-dependencies]
+dev = ["pytest>=8.3,<10", "pytest-asyncio>=0.25,<2", "ruff>=0.9,<1", "aiosqlite>=0.20,<1"]
+[tool.hatch.build.targets.wheel]
+packages = ["lifeos", "apps"]
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = ["postgres: requires a disposable external PostgreSQL database", "ffmpeg: requires local ffmpeg and ffprobe"]
+[tool.ruff]
+line-length = 100
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+ignore = ["E501"]

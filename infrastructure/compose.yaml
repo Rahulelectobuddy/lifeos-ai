@@ -1,0 +1,62 @@
+name: lifeos-ai
+x-application: &application
+  build:
+    context: ..
+  image: lifeos-ai:0.1.0
+  env_file:
+    - ${LIFEOS_ENV_FILE:-../.env}
+  environment:
+    ARTIFACT_ROOT: /data/artifacts
+  volumes:
+    - lifeos_artifacts:/data/artifacts
+  restart: unless-stopped
+  init: true
+  user: "10001:10001"
+  read_only: true
+  tmpfs:
+    - /tmp:size=256m,mode=1777
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  stop_grace_period: 45s
+  deploy:
+    resources:
+      limits:
+        cpus: "2.0"
+        memory: 2G
+services:
+  api:
+    <<: *application
+    ports:
+      - "127.0.0.1:8000:8000"
+    command: [uvicorn, apps.api.main:app, --host, 0.0.0.0, --port, "8000", --no-access-log]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+  zulip-bot:
+    <<: *application
+    command: [python, -m, apps.zulip_bot.main]
+    healthcheck:
+      test: [CMD, python, -c, "import time,pathlib; p=pathlib.Path('/tmp/lifeos-bot-heartbeat'); assert time.time()-p.stat().st_mtime < 120"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+  worker:
+    <<: *application
+    command: [python, -m, apps.worker.main]
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4G
+    healthcheck:
+      test: [CMD, python, -c, "import time,pathlib; p=pathlib.Path('/tmp/lifeos-worker-heartbeat'); assert time.time()-p.stat().st_mtime < 120"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+volumes:
+  lifeos_artifacts:

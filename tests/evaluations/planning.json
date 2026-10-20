@@ -1,0 +1,60 @@
+[
+  {
+    "id": "overdue",
+    "request": "Plan overdue work first.",
+    "expected": "Overdue records appear in warnings; high-priority tasks favored.",
+    "checks": [
+      "overdue",
+      "priority"
+    ]
+  },
+  {
+    "id": "deadlines",
+    "request": "Plan two tasks due today within 30 minutes.",
+    "expected": "Warn about deadline conflict; never exceed capacity.",
+    "checks": [
+      "deadline_conflict",
+      "capacity"
+    ]
+  },
+  {
+    "id": "blocked",
+    "request": "Plan a task depending on unfinished work.",
+    "expected": "Schedule prerequisite first or disclose blockage.",
+    "checks": [
+      "dependency_order"
+    ]
+  },
+  {
+    "id": "capacity",
+    "request": "I have 20 minutes every weekday. Plan my week.",
+    "expected": "No day exceeds 20 minutes; unfinished work disclosed.",
+    "checks": [
+      "capacity"
+    ]
+  },
+  {
+    "id": "missing",
+    "request": "Plan next week with incomplete project information.",
+    "expected": "Ask for missing project information.",
+    "checks": [
+      "questions"
+    ]
+  },
+  {
+    "id": "rejection",
+    "request": "Reject the proposed plan.",
+    "expected": "No planning business mutations occur.",
+    "checks": [
+      "approval_rejection"
+    ]
+  },
+  {
+    "id": "duplicate",
+    "request": "Approve the same ID twice.",
+    "expected": "Second decision is rejected; exactly one saved plan.",
+    "checks": [
+      "idempotency"
+    ]
+  }
+]
